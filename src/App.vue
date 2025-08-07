@@ -10,6 +10,8 @@ import {
   LinearScale,
   type ChartOptions,
   type ChartData,
+  type Plugin,
+  type ChartType,
 } from "chart.js";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 
@@ -34,6 +36,51 @@ const chartData: ChartData<"bar"> = {
   ],
 };
 
+const totalSumPlugin: Plugin<ChartType> = {
+  id: "totalSum",
+  afterDatasetDraw: (chart, _args, _options) => {
+    const {
+      ctx,
+      data,
+      scales: { y },
+    } = chart;
+
+    const yHidden: any[] = [];
+
+    for (let i = 0; i <= data.datasets.length; i++) {
+      const dataPointRow = data.datasets.map((_dataset, index) => {
+        let yCoordinate = 0;
+        if (chart.getDatasetMeta(index).hidden === true) {
+          yCoordinate = 1000; // 如果 dataset 被隱藏，則設定一個很大的 y 座標
+        } else {
+          yCoordinate = chart.getDatasetMeta(index).data[i].y;
+        }
+        return yCoordinate;
+      });
+
+      yHidden.push(dataPointRow);
+    }
+
+    data.datasets[0].data.forEach((_dataPoint, index) => {
+      console.log("yHidden :>> ", yHidden?.[index]);
+      const yPosArray = yHidden?.[index];
+      if (yPosArray && Array.isArray(yPosArray) && yPosArray.length > 0) {
+        const yPos = Math.min(...yPosArray); // 在最小 y 座標下方顯示文字
+        ctx.save();
+        ctx.font = "bold 16px sans-serif";
+        ctx.fillStyle = "#000";
+        ctx.textAlign = "center";
+        ctx.fillText(
+          String(y.getValueForPixel(yPos)?.toFixed(0) ?? ""),
+          chart.getDatasetMeta(0).data[index].x,
+          yPos - 12
+        );
+        ctx.restore();
+      }
+    });
+  },
+};
+
 ChartJS.register(
   Title,
   Tooltip,
@@ -41,7 +88,8 @@ ChartJS.register(
   BarElement,
   CategoryScale,
   LinearScale,
-  ChartDataLabels
+  ChartDataLabels,
+  totalSumPlugin
 );
 
 const chartOptions: ChartOptions<"bar"> = {
@@ -50,7 +98,7 @@ const chartOptions: ChartOptions<"bar"> = {
     x: { stacked: true },
     y: { stacked: true, grace: "5%" },
   },
-  onClick: (e, el, chart) => {
+  onClick: (_e, el, chart) => {
     // console.log("event :>> ", e);
     console.log("el :>> ", el);
     console.log("chart :>> ", chart);
@@ -85,27 +133,27 @@ const chartOptions: ChartOptions<"bar"> = {
             return !!value ? `${value}` : "";
           },
         },
-        sum: {
-          anchor: "end",
-          align: "top",
-          color: "red",
-          font: {
-            weight: "bold",
-            size: 20,
-          },
-          clip: true,
-          formatter: (v: number, ctx) => {
-            const datasets = ctx.chart.data.datasets;
-            const dataIndex = ctx.dataIndex;
-            if (ctx.datasetIndex === datasets.length - 1) {
-              const sum = datasets
-                .map((ds) => ds.data[dataIndex] as number)
-                .reduce((a, b) => a + b, 0);
-              return sum;
-            }
-            return "";
-          },
-        },
+        // sum: {
+        //   anchor: "end",
+        //   align: "top",
+        //   color: "red",
+        //   font: {
+        //     weight: "bold",
+        //     size: 20,
+        //   },
+        //   clip: true,
+        //   formatter: (v: number, ctx) => {
+        //     const datasets = ctx.chart.data.datasets;
+        //     const dataIndex = ctx.dataIndex;
+        //     if (ctx.datasetIndex === datasets.length - 1) {
+        //       const sum = datasets
+        //         .map((ds) => ds.data[dataIndex] as number)
+        //         .reduce((a, b) => a + b, 0);
+        //       return sum;
+        //     }
+        //     return "";
+        //   },
+        // },
       },
     },
   },
