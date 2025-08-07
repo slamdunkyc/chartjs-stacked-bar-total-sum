@@ -49,6 +49,14 @@ const totalSumPlugin: Plugin<ChartType> = {
   afterDatasetDraw: (chart, _args, _options) => {
     const { ctx, data } = chart;
 
+    // 從 chart options 中取得 totalSum 設定
+    const pluginOptions = (chart.options.plugins as any)?.totalSum || {};
+
+    // 如果 plugin 被禁用，直接返回
+    if (pluginOptions.enabled === false) {
+      return;
+    }
+
     // 檢查必要的資料是否存在
     if (!data.datasets || data.datasets.length === 0 || !data.labels) {
       return;
@@ -171,7 +179,7 @@ const chartOptions: ExtendedChartOptions = {
       enabled: false,
     },
     totalSum: {
-      enabled: false,
+      // enabled: false,
     },
     datalabels: {
       labels: {
